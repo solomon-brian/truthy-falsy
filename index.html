@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The TruthyFalsy Organization</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M 50 0 A 50 50 0 0 0 50 100' fill='%23000000'/%3E%3Cpath d='M 50 0 A 50 50 0 0 1 50 100' fill='%23FFFFFF'/%3E%3Cpath d='M 50 0 A 25 25 0 0 1 50 50 A 25 25 0 0 0 50 100' fill='%23000000'/%3E%3Cpath d='M 50 0 A 25 25 0 0 0 50 50 A 25 25 0 0 1 50 100' fill='%23FFFFFF'/%3E%3Cpath d='M 45 20 L 49 28 L 55 18' stroke='%2300A32A' stroke-width='5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpath d='M 45 70 L 55 80 M 55 70 L 45 80' stroke='%23D10026' stroke-width='5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&family=Roboto+Mono:wght@400;700&display=swap');
+:root { --bg: #FFFFFF; --text-main: #111111; --text-dim: #606060; --border-color: #E0E0E0; --highlight-bg: #F5F5F5; --truthy-green: #00A32A; --falsy-red: #D10026; --yin-yang-dark: #000000; --bot-bubble-bg: #F0F0F0; --user-bubble-bg: #E0F8E5; --input-bg: #FFFFFF; --input-shadow: rgba(0,163,42,0.15); }
+body.dark-mode { --bg: #111111; --text-main: #FFFFFF; --text-dim: #999999; --border-color: #333333; --highlight-bg: #1a1a1a; --input-shadow: rgba(0,255,65,0.1); --bot-bubble-bg: #222222; --user-bubble-bg: #002D0C; --input-bg: #1a1a1a; }
+
+html, body { margin:0; padding:0; height:100%; width:100%; overflow:hidden; }
+body { background:var(--bg); font-family:'Inter', sans-serif; color:var(--text-main); transition: background-color 0.4s ease, color 0.4s ease; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+#app-container { height: 100%; width: 100%; display: flex; flex-direction: column; }
+
+/* --- HEADER & NAVIGATION --- */
+#app-header { display: flex; align-items: center; justify-content: space-between; padding: 25px 40px; border-bottom: 1px solid var(--border-color); position: fixed; top: 0; left: 0; width: 100%; background-color: var(--bg); z-index: 100; box-sizing: border-box; transition: background-color 0.4s ease, border-color 0.4s ease; }
+#brand-signature { display:flex; align-items:center; cursor:pointer; text-decoration: none; border-radius: 8px; }
+#brand-signature:focus-visible { outline: 2px solid var(--truthy-green); outline-offset: 4px; }
+.mini-logo { width:36px; height:36px; margin-right:15px; }
+#brand-signature span { color:var(--text-main); font-size:1.2rem; font-weight:400; letter-spacing:1px; }
+.truthy-brand { color: var(--truthy-green); font-weight: 600; }
+.falsy-brand { color: var(--falsy-red); font-weight: 600; }
+#nav-controls { display: flex; align-items: center; gap: 20px; }
+.nav-toggle { font-family: 'Roboto Mono', monospace; font-size: 1rem; color: var(--text-dim); background: none; border: none; padding: 8px 16px; cursor: pointer; border-radius: 8px; transition: color 0.3s ease, background-color 0.3s ease; }
+.nav-toggle.active { color: var(--text-main); background-color: var(--highlight-bg); font-weight: 700; }
+.nav-toggle:hover:not(.active) { color: var(--text-main); }
+.nav-toggle:focus-visible { outline: 2px solid var(--truthy-green); outline-offset: 2px; }
+
+/* --- MAIN CONTENT AREA --- */
+#main-content { flex-grow: 1; padding-top: 87px; /* height of header */ display: flex; flex-direction: column; overflow: hidden; }
+.view { width: 100%; height: 100%; display: none; flex-direction: column; }
+.view.active { display: flex; }
+
+/* --- CHAT VIEW STYLES --- */
+#chat-view { max-width: 800px; margin: 0 auto; }
+.chat-container { flex-grow: 1; min-height: 0; overflow-y: auto; padding: 20px; }
+.chat-container::-webkit-scrollbar { width: 8px; }
+.chat-container::-webkit-scrollbar-track { background: transparent; }
+.chat-container::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 20px; border: 2px solid var(--bg); }
+.chat-container { scrollbar-width: thin; scrollbar-color: var(--border-color) var(--bg); }
+.chat-log { width: 100%; margin-top: auto; display: flex; flex-direction: column; gap: 20px; }
+.welcome-message { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 0; }
+.welcome-logo { width: 60px; height: 60px; margin-bottom: 20px; }
+.welcome-title { font-size: 2rem; font-weight: 600; letter-spacing: 1px; }
+.message-wrapper { display: flex; max-width: 85%; align-items: flex-end; gap: 10px; opacity: 0; animation: fadeInMessage .5s ease-out forwards; }
+@keyframes fadeInMessage{ from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.message-wrapper.user { align-self: flex-end; }
+.message-wrapper.bot { align-self: flex-start; }
+.avatar { flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; overflow: hidden; }
+.avatar svg { width: 100%; height: 100%; }
+.message-bubble { padding: 12px 18px; border-radius: 18px; line-height: 1.6; font-size: 1rem; max-width: 100%; word-wrap: break-word; }
+.message-bubble.user { background-color: var(--user-bubble-bg); border-bottom-right-radius: 4px; }
+.message-bubble.bot { background-color: var(--bot-bubble-bg); border: 1px solid var(--border-color); border-bottom-left-radius: 4px; }
+.blinking-cursor { color: var(--truthy-green); animation: blink 1s step-end infinite; }
+@keyframes blink { from, to { opacity: 1; } 50% { opacity: 0; } }
+.input-container { padding: 15px 20px 20px; }
+.input-wrapper { display: flex; align-items: flex-end; gap: 10px; background-color: var(--input-bg); border: 1px solid var(--border-color); border-radius: 24px; padding: 8px 8px 8px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+.dark-mode .input-wrapper { box-shadow: none; }
+.input-wrapper:focus-within { border-color: var(--truthy-green); box-shadow: 0 0 0 3px var(--input-shadow); }
+#userInput { width: 100%; background: transparent; border: none; color: var(--text-main); font-size: 1rem; padding: 10px 0; outline: none; resize: none; overflow-y: hidden; line-height: 1.5; max-height: 150px; }
+#sendBtn { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; border: none; background-color: var(--truthy-green); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+/* --- DICE OF LIFE (PLAY VIEW) STYLES --- */
+#play-view { justify-content: center; }
+#dice-game-container { width: 100%; max-width: 700px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; }
+.game-header { text-align: center; padding: 10px 0; }
+.game-header h1 { font-family: var(--font-secondary); font-size: 2.5rem; font-weight: 900; margin: 0; }
+.game-header p { font-family: var(--font-primary); color: var(--text-dim); margin: 5px 0 0; }
+#dice-arena { flex-grow: 1; display: flex; align-items: center; justify-content: center; }
+.dice-set-wrapper { display: flex; gap: 40px; justify-content: center; width: 100%; }
+.dice-set { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+.dice-label { font-family: 'Roboto Mono', monospace; font-size: 1rem; font-weight: 700; letter-spacing: 2px; color: var(--text-dim); }
+.dice-container { display: flex; gap: 20px; }
+.dice { width: 80px; height: 80px; background-color: var(--bg); border: 2px solid var(--text-main); border-radius: 12px; display: grid; padding: 8px; transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+.pip { width: 16px; height: 16px; background-color: var(--text-main); border-radius: 50%; }
+.dice[data-value="1"] { grid-template-areas: ". . ." ". a ." ". . ."; }
+.dice[data-value="2"] { grid-template-areas: "a . ." ". . ." ". . b"; }
+.dice[data-value="3"] { grid-template-areas: "a . ." ". b ." ". . c"; }
+.dice[data-value="4"] { grid-template-areas: "a . b" ". . ." "c . d"; }
+.dice[data-value="5"] { grid-template-areas: "a . b" ". c ." "d . e"; }
+.dice[data-value="6"] { grid-template-areas: "a . b" "c . d" "e . f"; }
+.dice .pip:nth-child(1) { grid-area: a; } .dice .pip:nth-child(2) { grid-area: b; } .dice .pip:nth-child(3) { grid-area: c; } .dice .pip:nth-child(4) { grid-area: d; } .dice .pip:nth-child(5) { grid-area: e; } .dice .pip:nth-child(6) { grid-area: f; }
+.total-score { font-size: 1.2rem; font-weight: 600; }
+#game-controls { text-align: center; padding: 20px 0; }
+#roll-btn { font-family: 'Roboto Mono', monospace; font-size: 1.2rem; font-weight: 700; letter-spacing: 2px; color: var(--bg); background-color: var(--text-main); border: 2px solid var(--text-main); padding: 15px 40px; cursor: pointer; transition: all 0.2s ease; margin-bottom: 20px; }
+#roll-btn:hover:not(:disabled) { background-color: var(--bg); color: var(--text-main); }
+#roll-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+#oracle-output { min-height: 70px; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; background-color: var(--highlight-bg); }
+#oracle-verdict { font-family: var(--font-secondary); font-weight: 900; font-size: 1.2rem; margin-bottom: 5px; }
+#oracle-analysis { font-size: 1rem; line-height: 1.6; color: var(--text-dim); }
+#oracle-verdict.user-win { color: var(--truthy-green); }
+#oracle-verdict.system-win { color: var(--falsy-red); }
+
+/* --- RESPONSIVENESS --- */
+@media (max-width: 768px) {
+    #app-header { padding: 15px 20px; }
+    #main-content { padding-top: 71px; }
+    .nav-toggle { padding: 6px 10px; font-size: 0.9rem; }
+    #chat-view, #play-view { width: 100%; max-width: 100%; }
+    .chat-container { padding: 10px; }
+    .input-container { position: sticky; bottom: 0; background: var(--bg); padding: 10px; border-top: 1px solid var(--border-color); }
+    .message-wrapper { max-width: 90%; }
+    .dice { width: 60px; height: 60px; border-width: 1.5px; border-radius: 8px; padding: 6px; }
+    .pip { width: 12px; height: 12px; }
+    .game-header h1 { font-size: 2rem; }
+}
+</style>
+</head>
+<body>
+<div id="app-container">
+    <header id="app-header">
+        <a id="brand-signature" href="#" aria-label="The TruthyFalsy Organization Home">
+            <svg class="mini-logo" id="truthyfalsy-insignia" viewBox="0 0 100 100" aria-hidden="true">
+                <!-- SVG content copied by JS -->
+            </svg>
+            <span><span class="truthy-brand">Truthy</span><span class="falsy-brand">Falsy</span></span>
+        </a>
+        <nav id="nav-controls">
+            <button class="nav-toggle active" data-view="chat-view">Chat</button>
+            <button class="nav-toggle" data-view="play-view">Play</button>
+        </nav>
+    </header>
+
+    <main id="main-content">
+        <div id="chat-view" class="view active">
+            <div class="chat-container" id="chatContainer">
+                <!-- Chat log populated by JS -->
+            </div>
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea id="userInput" placeholder="Ask me anything..." rows="1" aria-label="Chat input"></textarea>
+                    <button id="sendBtn" aria-label="Execute Query" disabled><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/></svg></button>
+                </div>
+            </div>
+        </div>
+
+        <div id="play-view" class="view">
+            <div id="dice-game-container">
+                <header class="game-header">
+                    <h1>Dice of Life</h1>
+                    <p>Chance is data. Your response is everything.</p>
+                </header>
+                <main id="dice-arena">
+                    <div class="dice-set-wrapper">
+                        <div class="dice-set" id="user-dice-set">
+                            <div class="dice-label">USER</div>
+                            <div class="dice-container">
+                                <div class="dice" data-value="1"><div class="pip"></div></div>
+                                <div class="dice" data-value="1"><div class="pip"></div></div>
+                            </div>
+                            <div class="total-score" id="user-score">Total: 2</div>
+                        </div>
+                        <div class="dice-set" id="system-dice-set">
+                            <div class="dice-label">SYSTEM</div>
+                            <div class="dice-container">
+                                <div class="dice" data-value="1"><div class="pip"></div></div>
+                                <div class="dice" data-value="1"><div class="pip"></div></div>
+                            </div>
+                            <div class="total-score" id="system-score">Total: 2</div>
+                        </div>
+                    </div>
+                </main>
+                <footer id="game-controls">
+                    <button id="roll-btn">EXECUTE ROLL</button>
+                    <div id="oracle-output">
+                        <div id="oracle-verdict">AWAITING INITIALIZATION</div>
+                        <div id="oracle-analysis">Submit your first roll to receive adjudication.</div>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- CORE ELEMENTS ---
+    const body = document.body;
+    const brandSignature = document.getElementById("brand-signature");
+    const navToggles = document.querySelectorAll('.nav-toggle');
+    const views = document.querySelectorAll('.view');
+    const insigniaContainer = document.querySelector('#brand-signature .mini-logo');
+    
+    // --- CHAT ELEMENTS ---
+    const chatLog = document.getElementById("chatLog");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    
+    // --- DICE GAME ELEMENTS ---
+    const rollBtn = document.getElementById('roll-btn');
+    const userDiceSet = document.getElementById('user-dice-set');
+    const systemDiceSet = document.getElementById('system-dice-set');
+    const userScoreEl = document.getElementById('user-score');
+    const systemScoreEl = document.getElementById('system-score');
+    const oracleVerdictEl = document.getElementById('oracle-verdict');
+    const oracleAnalysisEl = document.getElementById('oracle-analysis');
+
+    // --- STATE MANAGEMENT ---
+    let commandHistory = [], historyIndex = 0, conversationMemory = [];
+    const MAX_MEMORY_SIZE = 10;
+    const THEME_KEY = "truthyfalsy_theme_v1";
+
+    // --- INSIGNIA SVG ---
+    const insigniaSVG = `<path d="M 50 0 A 50 50 0 0 0 50 100" fill="var(--yin-yang-dark)" /><path d="M 50 0 A 50 50 0 0 1 50 100" fill="var(--bg)" /><path d="M 50 0 A 25 25 0 0 1 50 50 A 25 25 0 0 0 50 100" fill="var(--yin-yang-dark)" /><path d="M 50 0 A 25 25 0 0 0 50 50 A 25 25 0 0 1 50 100" fill="var(--bg)" /><path d="M 45 20 L 49 28 L 55 18" stroke="var(--truthy-green)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" /><path d="M 45 70 L 55 80 M 55 70 L 45 80" stroke="var(--falsy-red)" stroke-width="5" stroke-linecap="round" fill="none" />`;
+    insigniaContainer.innerHTML = insigniaSVG;
+
+    // --- MARKED.JS RENDERER CONFIG ---
+    const renderer = new marked.Renderer();
+    const originalHeading = renderer.heading.bind(renderer);
+    renderer.heading = (text, level, raw) => {
+        if (level === 3) {
+            if (raw.toLowerCase().includes('truthy!')) return `<h3 class="truthy-adjudication">${text}</h3>`;
+            if (raw.toLowerCase().includes('falsy!')) return `<h3 class="falsy-adjudication">${text}</h3>`;
+        }
+        return originalHeading(text, level, raw);
+    };
+    const markedOptions = { renderer, breaks: true, gfm: true };
+    
+    // --- CORE FUNCTIONS ---
+    const applyTheme = (theme) => { body.classList.toggle("dark-mode", theme === "dark"); localStorage.setItem(THEME_KEY, theme); };
+    const toggleTheme = () => { applyTheme(body.classList.contains("dark-mode") ? "light" : "dark"); };
+    const scrollToBottom = () => chatLog.parentElement.scrollTo({ top: chatLog.parentElement.scrollHeight, behavior: "smooth" });
+    const autoResizeTextarea = () => { userInput.style.height = "auto"; userInput.style.height = `${Math.min(userInput.scrollHeight, 150)}px`; };
+
+    // --- CHAT FUNCTIONS ---
+    const displayWelcomeMessage = () => {
+        const welcomeHTML = `<div class="welcome-message"><svg class="welcome-logo" viewBox="0 0 100 100">${insigniaSVG}</svg><span class="welcome-title"><span class="truthy-brand">Truthy</span><span class="falsy-brand">Falsy</span></span></div>`;
+        chatLog.innerHTML = welcomeHTML;
+        userInput.focus();
+    };
+    const startNewChat = () => { displayWelcomeMessage(); conversationMemory = []; commandHistory = []; historyIndex = 0; userInput.value = ""; autoResizeTextarea(); sendBtn.disabled = true; };
+    const createMessageElement = (text, role) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = `message-wrapper ${role}`;
+        const bubble = document.createElement("div");
+        bubble.className = `message-bubble ${role}`;
+        bubble.innerHTML = marked.parse(text, markedOptions);
+        if (role === 'bot') {
+            const avatar = document.createElement("div");
+            avatar.className = 'avatar';
+            avatar.innerHTML = `<svg viewBox="0 0 100 100">${insigniaSVG}</svg>`;
+            wrapper.appendChild(avatar);
+        }
+        wrapper.appendChild(bubble);
+        return wrapper;
+    };
+    const displayMessage = (text, role) => { if (document.querySelector('.welcome-message')) chatLog.innerHTML = ''; const el = createMessageElement(text, role); chatLog.appendChild(el); scrollToBottom(); return el; };
+    const handleSubmission = () => { const command = userInput.value.trim(); if (command) processCommand(command); };
+    async function processCommand(command) {
+        userInput.value = ""; autoResizeTextarea(); sendBtn.disabled = true; userInput.disabled = true;
+        displayMessage(command, "user"); commandHistory.push(command); historyIndex = commandHistory.length;
+        const responseWrapper = displayMessage('<span class="blinking-cursor">▍</span>', "bot");
+        const responseBubble = responseWrapper.querySelector('.message-bubble');
+        let fullResponse = "";
+        try {
+            const response = await fetch("/api/server", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: command, memory: conversationMemory }), });
+            if (!response.ok) throw new Error(`Network response error: ${response.statusText}`);
+            const reader = response.body.getReader(); const decoder = new TextDecoder(); responseBubble.innerHTML = "";
+            while (true) {
+                const { done, value } = await reader.read(); if (done) break;
+                fullResponse += decoder.decode(value, {stream: true});
+                responseBubble.innerHTML = marked.parse(fullResponse + '<span class="blinking-cursor">▍</span>', markedOptions);
+                scrollToBottom();
+            }
+            responseBubble.innerHTML = marked.parse(fullResponse, markedOptions);
+            conversationMemory.push({ role: "user", content: command }, { role: "assistant", content: fullResponse });
+            if (conversationMemory.length > MAX_MEMORY_SIZE) conversationMemory = conversationMemory.slice(-MAX_MEMORY_SIZE);
+        } catch (error) {
+            console.error("[TFO_CLIENT_ERROR]", error);
+            responseBubble.innerHTML = marked.parse(`### Falsy!\n\nA fault occurred in the connection protocol.\n\n**Error:** ${error.message}`, markedOptions);
+        } finally {
+            userInput.disabled = false; userInput.focus(); sendBtn.disabled = userInput.value.trim() === ''; scrollToBottom();
+        }
+    }
+
+    // --- DICE OF LIFE FUNCTIONS ---
+    function createPips(value) { let pips = ''; for (let i = 0; i < value; i++) { pips += '<div class="pip"></div>'; } return pips; }
+    function updateDice(diceSet, values) {
+        const diceElements = diceSet.querySelectorAll('.dice');
+        diceElements.forEach((dice, index) => {
+            dice.dataset.value = values[index];
+            dice.innerHTML = createPips(values[index]);
+            dice.style.transform = `rotate(${Math.random() * 360}deg) scale(0.8)`;
+            setTimeout(() => dice.style.transform = 'rotate(0deg) scale(1)', 50);
+        });
+    }
+    function getOracleAdjudication(userTotal, systemTotal, userDoubles) {
+        let verdict, analysis;
+        if (userTotal === systemTotal) {
+            verdict = { text: "STALEMATE", class: "" };
+            analysis = "A parity of force results in a null state. Resources were expended with no territorial gain. This is the definition of inefficiency. Recalibrate and redeploy.";
+        } else if (userTotal > systemTotal) {
+            verdict = { text: "USER VICTORY", class: "user-win" };
+            analysis = userTotal >= 10 ? "Victory through an overwhelming application of force. While effective, true strategy is measured by success with minimal resources. An inefficient but decisive result." : "A tactically significant result. You achieved mission success despite a suboptimal resource allocation. This demonstrates efficiency, a key component of the protocol.";
+        } else {
+            verdict = { text: "SYSTEM VICTORY", class: "system-win" };
+            analysis = (systemTotal >= 10 && userTotal > 6) ? "A critical lesson. A significant application of force is irrelevant if the opposing force is superior. Do not commit to a battle without ensuring absolute dominance." : "The outcome was determined at the point of origin. The initial conditions were non-viable. A strategic withdrawal would have been the only logical move. Learn to recognize an unwinnable fight.";
+        }
+        if (userDoubles) { analysis += " // OBSERVED: A perfect synergy of user variables. Replicate the conditions."; }
+        return { verdict, analysis };
+    }
+    function executeRoll() {
+        rollBtn.disabled = true; oracleVerdictEl.textContent = 'CALIBRATING...'; oracleVerdictEl.className = ''; oracleAnalysisEl.textContent = 'Analyzing random variable distribution...';
+        setTimeout(() => {
+            const userValues = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
+            const systemValues = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
+            const userTotal = userValues[0] + userValues[1]; const systemTotal = systemValues[0] + systemValues[1];
+            const userDoubles = userValues[0] === userValues[1];
+            updateDice(userDiceSet, userValues); updateDice(systemDiceSet, systemValues);
+            userScoreEl.textContent = `Total: ${userTotal}`; systemScoreEl.textContent = `Total: ${systemTotal}`;
+            const adjudication = getOracleAdjudication(userTotal, systemTotal, userDoubles);
+            oracleVerdictEl.textContent = adjudication.verdict.text; oracleVerdictEl.className = adjudication.verdict.class;
+            oracleAnalysisEl.textContent = adjudication.analysis;
+            rollBtn.disabled = false;
+        }, 700);
+    }
+
+    // --- EVENT LISTENERS ---
+    brandSignature.addEventListener("click", (e) => { e.preventDefault(); startNewChat(); });
+    navToggles.forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const targetViewId = toggle.dataset.view;
+            navToggles.forEach(t => t.classList.remove('active')); toggle.classList.add('active');
+            views.forEach(view => view.classList.toggle('active', view.id === targetViewId));
+        });
+    });
+    sendBtn.addEventListener('click', handleSubmission);
+    userInput.addEventListener("input", () => { autoResizeTextarea(); sendBtn.disabled = userInput.value.trim() === ''; });
+    userInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmission(); }
+        else if (e.key === "ArrowUp" && userInput.selectionStart === 0) { e.preventDefault(); if (historyIndex > 0) { historyIndex--; userInput.value = commandHistory[historyIndex] || ""; autoResizeTextarea(); sendBtn.disabled = userInput.value.trim() === ''; } }
+        else if (e.key === "ArrowDown" && userInput.selectionStart === userInput.value.length) { e.preventDefault(); if (historyIndex < commandHistory.length - 1) { historyIndex++; userInput.value = commandHistory[historyIndex] || ""; } else { historyIndex = commandHistory.length; userInput.value = ""; } autoResizeTextarea(); sendBtn.disabled = userInput.value.trim() === ''; }
+    });
+    if (rollBtn) rollBtn.addEventListener('click', executeRoll);
+
+    // --- INITIALIZATION ---
+    const initialTheme = localStorage.getItem(THEME_KEY) || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(initialTheme);
+    displayWelcomeMessage();
+    const themeToggleBtn = document.createElement('button');
+    themeToggleBtn.className = 'nav-toggle'; themeToggleBtn.textContent = 'Theme';
+    themeToggleBtn.setAttribute('aria-label', 'Toggle light and dark theme');
+    themeToggleBtn.addEventListener('click', toggleTheme);
+    document.getElementById('nav-controls').appendChild(themeToggleBtn);
+});
+</script>
+</body>
+</html>
