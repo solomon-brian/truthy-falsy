@@ -53,6 +53,15 @@ body { background:var(--bg); font-family:'Inter', sans-serif; color:var(--text-m
 .message-bubble { padding: 12px 18px; border-radius: 18px; line-height: 1.6; font-size: 1rem; max-width: 100%; word-wrap: break-word; }
 .message-bubble.user { background-color: var(--user-bubble-bg); border-bottom-right-radius: 4px; }
 .message-bubble.bot { background-color: var(--bot-bubble-bg); border: 1px solid var(--border-color); border-bottom-left-radius: 4px; }
+.message-bubble p:first-child { margin-top: 0; }
+.message-bubble p:last-child { margin-bottom: 0; }
+.message-bubble h3 { margin: 0 0 8px 0; }
+.message-bubble strong { font-weight: 600; }
+.message-bubble code { background-color: var(--highlight-bg); padding: 0.2em 0.4em; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 0.9em; }
+.message-bubble pre { background-color: var(--highlight-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 1em; overflow-x: auto; }
+.message-bubble pre code { background: none; padding: 0; }
+.truthy-adjudication, .message-bubble .truthy-adjudication strong { color: var(--truthy-green); }
+.falsy-adjudication, .message-bubble .falsy-adjudication strong { color: var(--falsy-red); }
 .blinking-cursor { color: var(--truthy-green); animation: blink 1s step-end infinite; }
 @keyframes blink { from, to { opacity: 1; } 50% { opacity: 0; } }
 .input-container { padding: 15px 20px 20px; }
@@ -60,7 +69,14 @@ body { background:var(--bg); font-family:'Inter', sans-serif; color:var(--text-m
 .dark-mode .input-wrapper { box-shadow: none; }
 .input-wrapper:focus-within { border-color: var(--truthy-green); box-shadow: 0 0 0 3px var(--input-shadow); }
 #userInput { width: 100%; background: transparent; border: none; color: var(--text-main); font-size: 1rem; padding: 10px 0; outline: none; resize: none; overflow-y: hidden; line-height: 1.5; max-height: 150px; }
-#sendBtn { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; border: none; background-color: var(--truthy-green); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+#userInput::placeholder { color: var(--text-dim); transition: opacity 0.3s ease; }
+#userInput:focus::placeholder { opacity: 0.5; }
+#sendBtn { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; border: none; background-color: var(--truthy-green); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease; }
+#sendBtn:hover:not(:disabled) { background-color: #008221; }
+.dark-mode #sendBtn:hover:not(:disabled) { background-color: #00C43D; }
+#sendBtn:active:not(:disabled) { transform: scale(0.9); }
+#sendBtn:disabled { background-color: var(--text-dim); cursor: not-allowed; opacity: 0.5; }
+#sendBtn svg { width: 20px; height: 20px; transform: translateX(1px); }
 
 /* --- DICE OF LIFE (PLAY VIEW) STYLES --- */
 #play-view { justify-content: center; }
@@ -130,7 +146,7 @@ body { background:var(--bg); font-family:'Inter', sans-serif; color:var(--text-m
             </div>
             <div class="input-container">
                 <div class="input-wrapper">
-                    <textarea id="userInput" placeholder="Ask me anything..." rows="1" aria-label="Chat input"></textarea>
+                    <textarea id="userInput" placeholder="Adjudicate reality..." rows="1" aria-label="Chat input"></textarea>
                     <button id="sendBtn" aria-label="Execute Query" disabled><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/></svg></button>
                 </div>
             </div>
@@ -249,30 +265,54 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const displayMessage = (text, role) => { if (document.querySelector('.welcome-message')) chatLog.innerHTML = ''; const el = createMessageElement(text, role); chatLog.appendChild(el); scrollToBottom(); return el; };
     const handleSubmission = () => { const command = userInput.value.trim(); if (command) processCommand(command); };
+    
     async function processCommand(command) {
         userInput.value = ""; autoResizeTextarea(); sendBtn.disabled = true; userInput.disabled = true;
-        displayMessage(command, "user"); commandHistory.push(command); historyIndex = commandHistory.length;
+        
+        displayMessage(command, "user");
+        commandHistory.push(command);
+        historyIndex = commandHistory.length;
+
         const responseWrapper = displayMessage('<span class="blinking-cursor">▍</span>', "bot");
         const responseBubble = responseWrapper.querySelector('.message-bubble');
+
         let fullResponse = "";
         try {
-            const response = await fetch("/api/server", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: command, memory: conversationMemory }), });
+            const response = await fetch("/api/server", { // LIVE API ENDPOINT
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: command, memory: conversationMemory }),
+            });
             if (!response.ok) throw new Error(`Network response error: ${response.statusText}`);
-            const reader = response.body.getReader(); const decoder = new TextDecoder(); responseBubble.innerHTML = "";
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            responseBubble.innerHTML = "";
+
             while (true) {
-                const { done, value } = await reader.read(); if (done) break;
+                const { done, value } = await reader.read();
+                if (done) break;
                 fullResponse += decoder.decode(value, {stream: true});
                 responseBubble.innerHTML = marked.parse(fullResponse + '<span class="blinking-cursor">▍</span>', markedOptions);
                 scrollToBottom();
             }
+            
             responseBubble.innerHTML = marked.parse(fullResponse, markedOptions);
+            
             conversationMemory.push({ role: "user", content: command }, { role: "assistant", content: fullResponse });
-            if (conversationMemory.length > MAX_MEMORY_SIZE) conversationMemory = conversationMemory.slice(-MAX_MEMORY_SIZE);
+            if (conversationMemory.length > MAX_MEMORY_SIZE) {
+                conversationMemory = conversationMemory.slice(-MAX_MEMORY_SIZE);
+            }
+
         } catch (error) {
             console.error("[TFO_CLIENT_ERROR]", error);
-            responseBubble.innerHTML = marked.parse(`### Falsy!\n\nA fault occurred in the connection protocol.\n\n**Error:** ${error.message}`, markedOptions);
+            const errorMessage = `### Falsy!\n\nA fault occurred in the connection protocol.\n\n**Error:** ${error.message}`;
+            responseBubble.innerHTML = marked.parse(errorMessage, markedOptions);
         } finally {
-            userInput.disabled = false; userInput.focus(); sendBtn.disabled = userInput.value.trim() === ''; scrollToBottom();
+            userInput.disabled = false;
+            userInput.focus();
+            sendBtn.disabled = userInput.value.trim() === '';
+            scrollToBottom();
         }
     }
 
