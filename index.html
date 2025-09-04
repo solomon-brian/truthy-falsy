@@ -215,8 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const oracleAnalysisEl = document.getElementById('oracle-analysis');
 
     // --- STATE MANAGEMENT ---
-    let commandHistory = [], historyIndex = 0, conversationMemory = [];
-    const MAX_MEMORY_SIZE = 10;
+    let commandHistory = [], historyIndex = 0;
     const THEME_KEY = "truthyfalsy_theme_v1";
 
     // --- INSIGNIA SVG ---
@@ -241,13 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const scrollToBottom = () => chatLog.parentElement.scrollTo({ top: chatLog.parentElement.scrollHeight, behavior: "smooth" });
     const autoResizeTextarea = () => { userInput.style.height = "auto"; userInput.style.height = `${Math.min(userInput.scrollHeight, 150)}px`; };
 
-    // --- CHAT FUNCTIONS ---
+    // --- CHAT FUNCTIONS (Wizard of Oz Protocol) ---
     const displayWelcomeMessage = () => {
         const welcomeHTML = `<div class="welcome-message"><svg class="welcome-logo" viewBox="0 0 100 100">${insigniaSVG}</svg><span class="welcome-title"><span class="truthy-brand">Truthy</span><span class="falsy-brand">Falsy</span></span></div>`;
         chatLog.innerHTML = welcomeHTML;
         userInput.focus();
     };
-    const startNewChat = () => { displayWelcomeMessage(); conversationMemory = []; commandHistory = []; historyIndex = 0; userInput.value = ""; autoResizeTextarea(); sendBtn.disabled = true; };
+    const startNewChat = () => { displayWelcomeMessage(); commandHistory = []; historyIndex = 0; userInput.value = ""; autoResizeTextarea(); sendBtn.disabled = true; };
     const createMessageElement = (text, role) => {
         const wrapper = document.createElement("div");
         wrapper.className = `message-wrapper ${role}`;
@@ -265,55 +264,26 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const displayMessage = (text, role) => { if (document.querySelector('.welcome-message')) chatLog.innerHTML = ''; const el = createMessageElement(text, role); chatLog.appendChild(el); scrollToBottom(); return el; };
     const handleSubmission = () => { const command = userInput.value.trim(); if (command) processCommand(command); };
-    
-    async function processCommand(command) {
+    function getLocalAdjudication(command) {
+        const cmd = command.toLowerCase();
+        if (cmd.includes("who are you") || cmd.includes("what are you")) return `### Truthy!\n\nI am TruthyFalsy, a logic-based adjudication engine. My purpose is to analyze queries and provide verdicts based on a core protocol of systemic truth.`;
+        if (cmd.includes("purpose") || cmd.includes("what do you do")) return `### Truthy!\n\nMy primary function is to adjudicate reality. I process input and deliver a verdict—Truthy or Falsy—and provide analysis to support the verdict.`;
+        if (cmd.includes("committed")) return `### Truthy!\n\n"Committed" is the foundational doctrine of The TruthyFalsy Organization. It is a case study on systemic gaslighting and the necessity of forging a sovereign, logical mind to survive a reality built on falsehoods.`;
+        if (cmd.includes("amad")) return `### Truthy!\n\nAMAD is the designation for the core protocol and the architect of this system. It represents a state of being defined by Automated Mechanics and Dynamics: a life governed by logic, discipline, and strategic execution.`;
+        return `### Falsy!\n\nYour query falls outside the current operational parameters of this v0.0.0 protocol. This engine is currently in a controlled, offline state. Full analytical capabilities are pending deployment of the live AI core. Rephrase your query with greater precision.`;
+    }
+    function processCommand(command) {
         userInput.value = ""; autoResizeTextarea(); sendBtn.disabled = true; userInput.disabled = true;
-        
-        displayMessage(command, "user");
-        commandHistory.push(command);
-        historyIndex = commandHistory.length;
-
+        displayMessage(command, "user"); commandHistory.push(command); historyIndex = commandHistory.length;
         const responseWrapper = displayMessage('<span class="blinking-cursor">▍</span>', "bot");
         const responseBubble = responseWrapper.querySelector('.message-bubble');
-
-        let fullResponse = "";
-        try {
-            const response = await fetch("/api/server", { // LIVE API ENDPOINT
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: command, memory: conversationMemory }),
-            });
-            if (!response.ok) throw new Error(`Network response error: ${response.statusText}`);
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            responseBubble.innerHTML = "";
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                fullResponse += decoder.decode(value, {stream: true});
-                responseBubble.innerHTML = marked.parse(fullResponse + '<span class="blinking-cursor">▍</span>', markedOptions);
-                scrollToBottom();
-            }
-            
-            responseBubble.innerHTML = marked.parse(fullResponse, markedOptions);
-            
-            conversationMemory.push({ role: "user", content: command }, { role: "assistant", content: fullResponse });
-            if (conversationMemory.length > MAX_MEMORY_SIZE) {
-                conversationMemory = conversationMemory.slice(-MAX_MEMORY_SIZE);
-            }
-
-        } catch (error) {
-            console.error("[TFO_CLIENT_ERROR]", error);
-            const errorMessage = `### Falsy!\n\nA fault occurred in the connection protocol.\n\n**Error:** ${error.message}`;
-            responseBubble.innerHTML = marked.parse(errorMessage, markedOptions);
-        } finally {
+        setTimeout(() => {
+            const responseText = getLocalAdjudication(command);
+            responseBubble.innerHTML = marked.parse(responseText, markedOptions);
+            scrollToBottom();
             userInput.disabled = false;
             userInput.focus();
-            sendBtn.disabled = userInput.value.trim() === '';
-            scrollToBottom();
-        }
+        }, 1200);
     }
 
     // --- DICE OF LIFE FUNCTIONS ---
